@@ -1,0 +1,225 @@
+http://www.cnblogs.com/william-lin/p/3723752.html
+1.查询Student表中的所有记录的Sname、Ssex和Class列
+select sname,ssex,classfrom student
+Linq:
+    from s in Students
+    select new {
+        s.SNAME,
+        s.SSEX,
+        s.CLASS
+    }
+Lambda:
+    Students.Select( s => new {
+        SNAME = s.SNAME,SSEX = s.SSEX,CLASS = s.CLASS
+    })
+2.查询教师所有的单位即不重复的Depart列
+select distinct depart from teacher
+Linq:
+    from t in Teachers.Distinct()
+    select t.DEPART
+Lambda:
+    Teachers.Distinct().Select( t => t.DEPART)
+3.查询Student表的所有记录
+select * from student
+Linq:
+    from s in Students
+    select s
+Lambda:
+    Students.Select( s => s)
+4.查询Score表中成绩在60到80之间的所有记录
+select * from score where degree between 60 and 80
+Linq:
+    from s in Scores
+    where s.DEGREE >= 60 && s.DEGREE < 80 select s
+Lambda:
+    Scores.Where( 
+        s => (
+                s.DEGREE >= 60 && s.DEGREE < 80 
+             )
+    )
+5.查询Score表中成绩为85，,86或88的记录
+from info in Ds_AdapterInfo
+where (
+        new string[] {"互联网页适配器","cnki资源适配器","勘探百科适配器"}
+        ).Contains(info.AdapterName)
+select info
+
+Ds_AdapterInfo.Where(info => new String[]{"互联网页适配器", "cnki资源适配器", "勘探百科适配器" }.Contains(info.AdapterName))
+select * from score where degree in (85,86,88)
+Linq:
+In
+    from s in Scores
+    where (
+            newdecimal[]{85,86,88}
+          ).Contains(s.DEGREE)
+    select s
+Lambda:
+    Scores.Where( s => new Decimal[] {85,86,88}.Contains(s.DEGREE))
+Not in
+from s in Scores
+    where !(
+            newdecimal[]{85,86,88}
+          ).Contains(s.DEGREE)
+    select s
+Lambda:
+    Scores.Where( s => !(new Decimal[]{85,86,88}.Contains(s.DEGREE)))
+6.查询Student表中"95031"班或性别为"女"的同学记录
+select * from student whereclass ='95031' or ssex= N'女'
+Linq:
+    from s in Students
+    where s.CLASS == "95031" 
+       || s.CLASS == "女"select s
+Lambda:
+    Students.Where(s => ( s.CLASS == "95031" || s.CLASS == "女"))
+7.以Class降序查询Student表的所有记录
+select * from student order by Class DESC
+Linq:
+    from s in Students
+    orderby s.CLASS descending
+    select s
+Lambda:
+    Students.OrderByDescending(s => s.CLASS)
+8.以Cno升序、Degree降序查询Score表的所有记录
+select * from score order by Cno ASC,Degree DESC
+Linq:(这里Cno ASC在linq中要写在最外面)
+    from s in Scores
+    orderby s.DEGREE descending
+    orderby s.CNO ascending 
+    select s
+Lambda:
+    Scores.OrderByDescending( s => s.DEGREE)
+          .OrderBy( s => s.CNO)
+9.查询"95031"班的学生人数
+select count(*) from student whereclass = '95031'
+Linq:
+    (    from s in Students
+        where s.CLASS == "95031"select s
+    ).Count()
+Lambda:
+    Students.Where( s => s.CLASS == "95031" )
+                .Select( s => s)
+                    .Count()
+10.查询Score表中的最高分的学生学号和课程号
+select distinct s.Sno,c.Cno from student as s,course as c ,score as sc 
+where s.sno=(select sno from score where degree = (select max(degree) from score))
+and c.cno = (select cno from score where degree = (select max(degree) from score))
+Linq:
+    (
+        from s in Students
+        from c in Courses
+        from sc in Scores
+        let maxDegree = (from sss in Scores
+                        select sss.DEGREE
+                        ).Max()
+        let sno = (from ss in Scores
+                where ss.DEGREE == maxDegree
+                select ss.SNO).Single().ToString()
+        let cno = (from ssss in Scores
+                where ssss.DEGREE == maxDegree
+                select ssss.CNO).Single().ToString()
+        where s.SNO == sno && c.CNO == cno
+        selectnew {
+            s.SNO,
+            c.CNO
+        }
+    ).Distinct()
+操作时问题？执行时报错： where s.SNO == sno（这行报出来的） 运算符"=="无法应用于"string"和"System.Linq.IQueryable<string>"类型的操作数
+解决：
+原：let sno = (from ss in Scores
+                where ss.DEGREE == maxDegree
+                select ss.SNO).ToString()
+Queryable().Single()返回序列的唯一元素；如果该序列并非恰好包含一个元素，则会引发异常。 
+解：let sno = (from ss in Scores
+                where ss.DEGREE == maxDegree
+                select ss.SNO).Single().ToString()
+11.查询'3-105'号课程的平均分
+select avg(degree) from score where cno = '3-105'
+Linq:
+    (
+        from s in Scores
+        where s.CNO == "3-105"select s.DEGREE
+    ).Average()
+Lambda:
+    Scores.Where( s => s.CNO == "3-105")
+            .Select( s => s.DEGREE)
+                .Average()
+12.查询Score表中至少有5名学生选修的并以3开头的课程的平均分数
+select avg(degree) from score where cno like '3%' group by Cno having count(*)>=5
+Linq:
+        from s in Scores
+        where s.CNO.StartsWith("3")
+        group s by s.CNO
+        into cc
+        where cc.Count() >= 5select cc.Average( c => c.DEGREE)
+Lambda:
+    Scores.Where( s => s.CNO.StartsWith("3") )
+            .GroupBy( s => s.CNO )
+              .Where( cc => ( cc.Count() >= 5) )
+                .Select( cc => cc.Average( c => c.DEGREE) )
+Linq: SqlMethod
+like也可以这样写:
+    s.CNO.StartsWith("3") or SqlMethods.Like(s.CNO,"%3")
+13.查询最低分大于70，最高分小于90的Sno列
+select sno from score group by sno having min(degree) > 70 and max(degree) < 90
+Linq:
+    from s in Scores
+    group s by s.SNO
+    into ss
+    where ss.Min(cc => cc.DEGREE) > 70 && ss.Max( cc => cc.DEGREE) < 90selectnew
+    {
+        sno = ss.Key
+    }
+Lambda:
+    Scores.GroupBy (s => s.SNO)
+               .Where (ss => ((ss.Min (cc => cc.DEGREE) > 70) && (ss.Max (cc => cc.DEGREE) < 90)))
+                   .Select ( ss => new {
+                                        sno = ss.Key
+                                     })
+14.查询所有学生的Sname、Cno和Degree列
+select s.sname,sc.cno,sc.degree from student as s,score as sc where s.sno = sc.sno
+Linq:
+    from s in Students
+    join sc in Scores
+    on s.SNO equals sc.SNO
+    selectnew
+    {
+        s.SNAME,
+        sc.CNO,
+        sc.DEGREE
+    }
+Lambda:
+    Students.Join(Scores, s => s.SNO,
+                          sc => sc.SNO, 
+                          (s,sc) => new{
+                                              SNAME = s.SNAME,
+                                            CNO = sc.CNO,
+                                            DEGREE = sc.DEGREE
+                                          })
+15.查询所有学生的Sno、Cname和Degree列
+select sc.sno,c.cname,sc.degree from course as c,score as sc where c.cno = sc.cno
+Linq:
+    from c in Courses
+    join sc in Scores
+    on c.CNO equals sc.CNO
+    selectnew
+    {
+        sc.SNO,c.CNAME,sc.DEGREE
+    }
+Lambda:
+    Courses.Join ( Scores, c => c.CNO, 
+                             sc => sc.CNO, 
+                             (c, sc) => new 
+                                        {
+                                            SNO = sc.SNO, 
+                                            CNAME = c.CNAME, 
+                                            DEGREE = sc.DEGREE
+                                        })
+16.查询所有学生的Sname、Cname和Degree列
+select s.sname,c.cname,sc.degree from student as s,course as c,score as sc where s.sno = sc.sno and c.cno = sc.cno
+Linq:
+    from s in Students
+    from c in Courses
+    from sc in Scores
+    where s.SNO == sc.SNO && c.CNO == sc.CNO
+    selectnew { s.SNAME,c.CNAME,sc.DEGREE }
+

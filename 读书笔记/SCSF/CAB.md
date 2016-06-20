@@ -13,6 +13,7 @@ don't directly reference each other
 shell should inherit FormShellApplication<,>
 config file: ProfileCatalog.xml
 make sure all project build into the same build directory.
+
 The CAB doesn't just call the usual startup code.
 inherit ModuleInit  override load
 
@@ -36,3 +37,5 @@ Obviously to be useful the second class will need to implement an interface that
 The aim of this is to let us change the behaviour of our class structure by changing which second class is injected into the main class. Because the main class has no hard dependency on the second class this can be done at runtime.
 
 Thus our code is very flexible, easy to modify and loosely coupled.
+
+
